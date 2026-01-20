@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Claude Code CLI Command Reference - A local-first PWA for browsing and searching Claude Code commands" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <title>Claude Slashbook</title>
+</head>
+<body class="bg-base text-zinc-100 font-sans antialiased">
+  <div id="app" class="min-h-screen flex flex-col">
+    <!-- Search Bar (Sticky) -->
+    <header id="search-header" class="sticky top-0 z-50 bg-base/95 backdrop-blur border-b border-card-border px-4 py-3">
+      <div class="max-w-7xl mx-auto">
+        <div id="search-container"></div>
+      </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="flex flex-1">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="w-64 flex-shrink-0 border-r border-card-border bg-surface hidden lg:block">
+        <nav id="sidebar-nav" class="sticky top-16 p-4 space-y-2"></nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="flex-1 p-6">
+        <div class="max-w-6xl mx-auto">
+          <div id="category-header" class="mb-6"></div>
+          <div id="command-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-card-border bg-surface px-4 py-3">
+      <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+        <div id="footer-actions" class="flex gap-2"></div>
+        <div class="text-sm text-zinc-500">
+          <span id="command-count">0 commands</span> · v1.0.0
+        </div>
+      </div>
+    </footer>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50"></div>
+
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
