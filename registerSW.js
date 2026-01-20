@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/claude-slashbook/sw.js', { scope: '/claude-slashbook/' })})}
