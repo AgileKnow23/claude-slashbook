@@ -1,4 +1,5 @@
-import { icons } from '../utils/icons';
+import { icons, customCategoryColors } from '../utils/icons';
+import { db } from '../db/index';
 
 export interface ModalOptions {
   title: string;
@@ -60,8 +61,9 @@ export function showModal(options: ModalOptions): void {
   });
 
   modal.querySelector('.modal-confirm')?.addEventListener('click', () => {
-    closeModal();
+    // Call onConfirm BEFORE closing modal so it can read input values
     onConfirm?.();
+    closeModal();
   });
 
   // Click outside to close
@@ -85,7 +87,15 @@ export function showModal(options: ModalOptions): void {
   container.appendChild(modal);
 }
 
-export function showAddCustomModal(onAdd: (cmd: string, description: string) => void): void {
+export async function showAddCustomModal(onAdd: (cmd: string, description: string, category: string) => void): Promise<void> {
+  // Get custom categories for the dropdown
+  const customCategories = await db.customCategories.toArray();
+
+  const categoryOptions = [
+    '<option value="custom">Custom (default)</option>',
+    ...customCategories.map(cat => `<option value="${cat.key}">${cat.label}</option>`)
+  ].join('');
+
   const content = `
     <div class="space-y-4">
       <div>
@@ -95,6 +105,12 @@ export function showAddCustomModal(onAdd: (cmd: string, description: string) => 
       <div>
         <label class="block text-sm font-medium text-zinc-400 mb-1">Description</label>
         <input type="text" id="custom-desc" class="input" placeholder="What does this command do?" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-zinc-400 mb-1">Category</label>
+        <select id="custom-category" class="input">
+          ${categoryOptions}
+        </select>
       </div>
     </div>
   `;
@@ -106,11 +122,13 @@ export function showAddCustomModal(onAdd: (cmd: string, description: string) => 
     onConfirm: () => {
       const cmdInput = document.getElementById('custom-cmd') as HTMLInputElement;
       const descInput = document.getElementById('custom-desc') as HTMLInputElement;
+      const categorySelect = document.getElementById('custom-category') as HTMLSelectElement;
       const cmd = cmdInput?.value.trim();
       const desc = descInput?.value.trim();
+      const category = categorySelect?.value || 'custom';
 
       if (cmd && desc) {
-        onAdd(cmd, desc);
+        onAdd(cmd, desc, category);
       }
     }
   });
@@ -118,6 +136,52 @@ export function showAddCustomModal(onAdd: (cmd: string, description: string) => 
   // Focus the first input
   setTimeout(() => {
     document.getElementById('custom-cmd')?.focus();
+  }, 100);
+}
+
+export function showAddCategoryModal(onAdd: (label: string, colorClass: string) => void): void {
+  const colorOptions = customCategoryColors.map((color, i) =>
+    `<label class="flex items-center gap-2 cursor-pointer">
+      <input type="radio" name="category-color" value="${color.class}" ${i === 0 ? 'checked' : ''} class="hidden peer" />
+      <span class="w-6 h-6 rounded-full border-2 border-transparent peer-checked:border-white ${color.class} bg-current"></span>
+      <span class="text-sm text-zinc-400">${color.name}</span>
+    </label>`
+  ).join('');
+
+  const content = `
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-zinc-400 mb-1">Category Name</label>
+        <input type="text" id="category-name" class="input" placeholder="My Tools" maxlength="30" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-zinc-400 mb-2">Color</label>
+        <div class="grid grid-cols-2 gap-2">
+          ${colorOptions}
+        </div>
+      </div>
+    </div>
+  `;
+
+  showModal({
+    title: 'New Category',
+    content,
+    confirmText: 'Create Category',
+    onConfirm: () => {
+      const nameInput = document.getElementById('category-name') as HTMLInputElement;
+      const colorInput = document.querySelector('input[name="category-color"]:checked') as HTMLInputElement;
+      const name = nameInput?.value.trim();
+      const colorClass = colorInput?.value || customCategoryColors[0].class;
+
+      if (name) {
+        onAdd(name, colorClass);
+      }
+    }
+  });
+
+  // Focus the first input
+  setTimeout(() => {
+    document.getElementById('category-name')?.focus();
   }, 100);
 }
 

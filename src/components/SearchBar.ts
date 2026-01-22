@@ -63,7 +63,11 @@ export function createSearchBar(options: SearchBarOptions): HTMLElement {
 
   // Keyboard shortcut: / to focus search
   document.addEventListener('keydown', (e) => {
-    if (e.key === '/' && document.activeElement !== input) {
+    // Don't capture "/" when user is typing in any input or textarea
+    const activeEl = document.activeElement;
+    const isTyping = activeEl instanceof HTMLInputElement || activeEl instanceof HTMLTextAreaElement;
+
+    if (e.key === '/' && !isTyping) {
       e.preventDefault();
       input.focus();
     }

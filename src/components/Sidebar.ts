@@ -1,13 +1,14 @@
-import { categoryConfig, CategoryKey } from '../utils/icons';
+import { categoryConfig, CategoryKey, getCategoryConfig, icons } from '../utils/icons';
 import { db } from '../db/index';
 
 export interface SidebarOptions {
   onCategorySelect: (category: CategoryKey) => void;
+  onAddCategory?: () => void;
   activeCategory: CategoryKey;
 }
 
 export async function createSidebar(options: SidebarOptions): Promise<HTMLElement> {
-  const { onCategorySelect, activeCategory } = options;
+  const { onCategorySelect, onAddCategory, activeCategory } = options;
 
   const nav = document.createElement('nav');
   nav.className = 'space-y-1';
@@ -15,7 +16,11 @@ export async function createSidebar(options: SidebarOptions): Promise<HTMLElemen
   // Get counts for each category
   const counts = await getCategoryCounts();
 
-  const categories: { key: CategoryKey; count: number }[] = [
+  // Get custom categories
+  const customCategories = await db.customCategories.toArray();
+
+  // Built-in categories
+  const builtinCategories: { key: CategoryKey; count: number }[] = [
     { key: 'all', count: counts.total },
     { key: 'favorites', count: counts.favorites },
     { key: 'native', count: counts.native },
@@ -26,29 +31,68 @@ export async function createSidebar(options: SidebarOptions): Promise<HTMLElemen
     { key: 'custom', count: counts.custom },
   ];
 
-  categories.forEach(({ key, count }) => {
+  // Render built-in categories
+  builtinCategories.forEach(({ key, count }) => {
     const config = categoryConfig[key];
-    const item = document.createElement('button');
-    item.className = `sidebar-item w-full ${activeCategory === key ? 'active' : ''}`;
-    item.dataset.category = key;
-
-    item.innerHTML = `
-      <span class="${config.colorClass}">${config.icon}</span>
-      <span class="flex-1 text-left">${config.label}</span>
-      <span class="text-xs text-zinc-500">${count}</span>
-    `;
-
-    item.addEventListener('click', () => {
-      // Update active state
-      nav.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-      item.classList.add('active');
-      onCategorySelect(key);
-    });
-
+    const item = createSidebarItem(key, config, count, activeCategory, onCategorySelect, nav);
     nav.appendChild(item);
   });
 
+  // Render custom categories (if any)
+  if (customCategories.length > 0) {
+    const divider = document.createElement('div');
+    divider.className = 'border-t border-zinc-700 my-2';
+    nav.appendChild(divider);
+
+    for (const cat of customCategories) {
+      const count = await db.commands.where('category').equals(cat.key).count();
+      const config = getCategoryConfig(cat.key, cat.label, cat.colorClass);
+      const item = createSidebarItem(cat.key, config, count, activeCategory, onCategorySelect, nav);
+      nav.appendChild(item);
+    }
+  }
+
+  // Add "New Category" button
+  if (onAddCategory) {
+    const addBtn = document.createElement('button');
+    addBtn.className = 'sidebar-item w-full text-zinc-500 hover:text-zinc-300 mt-2';
+    addBtn.innerHTML = `
+      <span class="text-zinc-500">${icons.plus}</span>
+      <span class="flex-1 text-left text-sm">New Category</span>
+    `;
+    addBtn.addEventListener('click', onAddCategory);
+    nav.appendChild(addBtn);
+  }
+
   return nav;
+}
+
+function createSidebarItem(
+  key: string,
+  config: { icon: string; label: string; colorClass: string },
+  count: number,
+  activeCategory: CategoryKey,
+  onCategorySelect: (category: CategoryKey) => void,
+  nav: HTMLElement
+): HTMLButtonElement {
+  const item = document.createElement('button');
+  item.className = `sidebar-item w-full ${activeCategory === key ? 'active' : ''}`;
+  item.dataset.category = key;
+
+  item.innerHTML = `
+    <span class="${config.colorClass}">${config.icon}</span>
+    <span class="flex-1 text-left">${config.label}</span>
+    <span class="text-xs text-zinc-500">${count}</span>
+  `;
+
+  item.addEventListener('click', () => {
+    // Update active state
+    nav.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+    item.classList.add('active');
+    onCategorySelect(key);
+  });
+
+  return item;
 }
 
 async function getCategoryCounts(): Promise<{

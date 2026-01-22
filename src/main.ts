@@ -5,10 +5,10 @@ import { createSearchBar } from './components/SearchBar';
 import { createSidebar, updateSidebarCounts } from './components/Sidebar';
 import { renderCommandGrid } from './components/CommandGrid';
 import { showToast } from './components/Toast';
-import { showAddCustomModal, showImportModal } from './components/Modal';
+import { showAddCustomModal, showImportModal, showAddCategoryModal } from './components/Modal';
 import { searchCommands } from './services/search';
 import { getFavorites, toggleFavorite } from './services/favorites';
-import { exportData, importData, downloadAsJson, addCustomCommand, deleteCustomCommand } from './services/sync';
+import { exportData, importData, downloadAsJson, addCustomCommand, deleteCustomCommand, addCustomCategory } from './services/sync';
 import { CategoryKey } from './utils/icons';
 import { icons } from './utils/icons';
 
@@ -71,6 +71,49 @@ async function initSidebar() {
       const input = document.getElementById('search-input') as HTMLInputElement;
       if (input) input.value = '';
       await renderCommands();
+    },
+    onAddCategory: () => {
+      showAddCategoryModal(async (label, colorClass) => {
+        try {
+          await addCustomCategory(label, colorClass);
+          showToast(`Created category: ${label}`);
+          await refreshSidebar();
+        } catch (error) {
+          showToast((error as Error).message || 'Failed to create category', 'error');
+        }
+      });
+    }
+  });
+
+  container.appendChild(sidebar);
+}
+
+// Refresh sidebar (needed when categories change)
+async function refreshSidebar() {
+  const container = document.getElementById('sidebar-nav');
+  if (!container) return;
+
+  // Clear and rebuild sidebar
+  container.innerHTML = '';
+  const sidebar = await createSidebar({
+    activeCategory: currentCategory,
+    onCategorySelect: async (category) => {
+      currentCategory = category;
+      currentQuery = ''; // Clear search when changing category
+      const input = document.getElementById('search-input') as HTMLInputElement;
+      if (input) input.value = '';
+      await renderCommands();
+    },
+    onAddCategory: () => {
+      showAddCategoryModal(async (label, colorClass) => {
+        try {
+          await addCustomCategory(label, colorClass);
+          showToast(`Created category: ${label}`);
+          await refreshSidebar();
+        } catch (error) {
+          showToast((error as Error).message || 'Failed to create category', 'error');
+        }
+      });
     }
   });
 
@@ -127,11 +170,12 @@ function initFooterActions() {
 
   // Add custom button
   document.getElementById('btn-add-custom')?.addEventListener('click', () => {
-    showAddCustomModal(async (cmd, description) => {
+    showAddCustomModal(async (cmd, description, category) => {
       try {
-        await addCustomCommand(cmd, description);
+        await addCustomCommand(cmd, description, category);
         showToast(`Added: ${cmd}`);
         await refreshAll();
+        await refreshSidebar(); // Update category counts
       } catch (error) {
         showToast((error as Error).message || 'Failed to add command', 'error');
       }

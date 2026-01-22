@@ -71,8 +71,13 @@ export function getIcon(name: IconName): string {
   return icons[name] || '';
 }
 
-// Category icons and colors
-export const categoryConfig = {
+// Folder icon for custom categories
+export const folderIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+</svg>`;
+
+// Category icons and colors (built-in categories)
+export const builtinCategoryConfig: Record<string, { icon: string; label: string; colorClass: string }> = {
   native: { icon: icons.terminal, label: 'Native', colorClass: 'category-native' },
   gsd: { icon: icons.rocket, label: 'GSD', colorClass: 'category-gsd' },
   cli: { icon: icons.code, label: 'CLI', colorClass: 'category-cli' },
@@ -83,4 +88,36 @@ export const categoryConfig = {
   all: { icon: icons.terminal, label: 'All Commands', colorClass: 'text-zinc-400' },
 };
 
-export type CategoryKey = keyof typeof categoryConfig;
+// For backwards compatibility
+export const categoryConfig = builtinCategoryConfig;
+
+// Built-in category keys type
+export type BuiltinCategoryKey = keyof typeof builtinCategoryConfig;
+
+// Category key can be builtin or any string (for custom categories)
+export type CategoryKey = BuiltinCategoryKey | string;
+
+// Available colors for custom categories
+export const customCategoryColors = [
+  { name: 'Purple', class: 'text-purple-400' },
+  { name: 'Pink', class: 'text-pink-400' },
+  { name: 'Rose', class: 'text-rose-400' },
+  { name: 'Orange', class: 'text-orange-400' },
+  { name: 'Teal', class: 'text-teal-400' },
+  { name: 'Cyan', class: 'text-cyan-400' },
+  { name: 'Lime', class: 'text-lime-400' },
+  { name: 'Indigo', class: 'text-indigo-400' },
+];
+
+// Get config for a category (builtin or custom)
+export function getCategoryConfig(key: string, customLabel?: string, customColorClass?: string): { icon: string; label: string; colorClass: string } {
+  if (key in builtinCategoryConfig) {
+    return builtinCategoryConfig[key];
+  }
+  // Return default config for custom categories
+  return {
+    icon: folderIcon,
+    label: customLabel || key,
+    colorClass: customColorClass || 'text-purple-400'
+  };
+}

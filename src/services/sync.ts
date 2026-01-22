@@ -1,4 +1,4 @@
-import { db, Command } from '../db/index';
+import { db, Command, CustomCategory, BUILTIN_CATEGORIES } from '../db/index';
 
 export interface ExportData {
   version: string;
@@ -103,7 +103,7 @@ export function downloadAsJson(data: ExportData): void {
   URL.revokeObjectURL(url);
 }
 
-export async function addCustomCommand(cmd: string, description: string): Promise<void> {
+export async function addCustomCommand(cmd: string, description: string, category: string = 'custom'): Promise<void> {
   // Check for duplicates
   const existing = await db.commands.where('cmd').equals(cmd).first();
   if (existing) {
@@ -113,11 +113,53 @@ export async function addCustomCommand(cmd: string, description: string): Promis
   await db.commands.add({
     cmd,
     description,
-    category: 'custom',
+    category,
     tags: [],
     isCustom: true,
     createdAt: Date.now()
   });
+}
+
+// Custom category management
+export async function getCustomCategories(): Promise<CustomCategory[]> {
+  return db.customCategories.toArray();
+}
+
+export async function addCustomCategory(label: string, colorClass: string): Promise<CustomCategory> {
+  // Generate URL-safe key from label
+  const key = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  // Check if key already exists (builtin or custom)
+  if (BUILTIN_CATEGORIES.includes(key as any)) {
+    throw new Error('Cannot use a built-in category name');
+  }
+
+  const existing = await db.customCategories.where('key').equals(key).first();
+  if (existing) {
+    throw new Error('Category already exists');
+  }
+
+  const id = await db.customCategories.add({
+    key,
+    label,
+    colorClass,
+    createdAt: Date.now()
+  });
+
+  return { id, key, label, colorClass, createdAt: Date.now() };
+}
+
+export async function deleteCustomCategory(id: number): Promise<void> {
+  const category = await db.customCategories.get(id);
+  if (!category) {
+    throw new Error('Category not found');
+  }
+
+  // Move all commands in this category to 'custom'
+  await db.commands.where('category').equals(category.key).modify({ category: 'custom' });
+
+  // Delete the category
+  await db.customCategories.delete(id);
 }
 
 export async function deleteCustomCommand(id: number): Promise<void> {

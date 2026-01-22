@@ -1,11 +1,15 @@
 import Dexie, { Table } from 'dexie';
 
+// Built-in categories (cannot be deleted)
+export const BUILTIN_CATEGORIES = ['native', 'gsd', 'cli', 'mcp', 'skills', 'custom'] as const;
+export type BuiltinCategory = typeof BUILTIN_CATEGORIES[number];
+
 export interface Command {
   id?: number;
   cmd: string;
   description: string;
   syntax?: string;
-  category: 'native' | 'gsd' | 'cli' | 'mcp' | 'skills' | 'custom';
+  category: string; // Can be builtin or custom category
   tags?: string[];
   isCustom?: boolean;
   createdAt?: number;
@@ -23,10 +27,19 @@ export interface Metadata {
   usageCount: number;
 }
 
+export interface CustomCategory {
+  id?: number;
+  key: string; // URL-safe key (e.g., "my-tools")
+  label: string; // Display name (e.g., "My Tools")
+  colorClass: string; // Tailwind color class
+  createdAt: number;
+}
+
 export class SlashbookDB extends Dexie {
   commands!: Table<Command>;
   favorites!: Table<Favorite>;
   metadata!: Table<Metadata>;
+  customCategories!: Table<CustomCategory>;
 
   constructor() {
     super('slashbook');
@@ -34,6 +47,13 @@ export class SlashbookDB extends Dexie {
       commands: '++id, cmd, category, *tags',
       favorites: '++id, cmd',
       metadata: 'cmd'
+    });
+    // Version 2: Add custom categories table
+    this.version(2).stores({
+      commands: '++id, cmd, category, *tags',
+      favorites: '++id, cmd',
+      metadata: 'cmd',
+      customCategories: '++id, key'
     });
   }
 }
